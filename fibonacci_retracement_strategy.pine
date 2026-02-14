@@ -1,0 +1,106 @@
+//@version=5
+strategy("Fibonacci Retracement Uptrend Breakout (PDH/PDL)", overlay=true, initial_capital=100000, pyramiding=0, commission_type=strategy.commission.percent, commission_value=0.0)
+
+// ---------------------------
+// Inputs
+// ---------------------------
+riskPct                 = input.float(1.0, "Risk Per Trade (%)", minval=0.1, step=0.1) / 100.0
+pivotLen                = input.int(3, "Pivot Length (HH/HL)", minval=1)
+stopBufferTicks         = input.int(2, "Stop Buffer (ticks)", minval=0)
+use782AsExtension       = input.bool(true, "Use 0.782 as Extension Target (recommended for longs)")
+requireBullishEngulfing = input.bool(true, "Require bullish engulfing confirmation")
+
+// ---------------------------
+// Previous-day range
+// ---------------------------
+pdh = request.security(syminfo.tickerid, "D", high[1], lookahead=barmerge.lookahead_off)
+pdl = request.security(syminfo.tickerid, "D", low[1], lookahead=barmerge.lookahead_off)
+
+plot(pdh, "PDH", color=color.new(color.green, 10), style=plot.style_linebr)
+plot(pdl, "PDL", color=color.new(color.red, 10), style=plot.style_linebr)
+
+// ---------------------------
+// Uptrend detection using HH + HL from pivots
+// ---------------------------
+ph = ta.pivothigh(high, pivotLen, pivotLen)
+pl = ta.pivotlow(low, pivotLen, pivotLen)
+
+var float lastPH = na
+var float prevPH = na
+var float lastPL = na
+var float prevPL = na
+
+if not na(ph)
+    prevPH := lastPH
+    lastPH := ph
+
+if not na(pl)
+    prevPL := lastPL
+    lastPL := pl
+
+uptrend = not na(lastPH) and not na(prevPH) and not na(lastPL) and not na(prevPL) and (lastPH > prevPH) and (lastPL > prevPL)
+
+// ---------------------------
+// Setup state (after breakout above PDH)
+// ---------------------------
+newDay = ta.change(time("D")) != 0
+var bool setupActive = false
+var float fib0386 = na
+var float fib0618 = na
+var float tpPrice = na
+
+if newDay
+    setupActive := false
+    fib0386 := na
+    fib0618 := na
+    tpPrice := na
+
+breakout = uptrend and close > pdh and close[1] <= pdh
+
+if breakout
+    r = pdh - pdl
+    fib0386 := pdh - 0.386 * r
+    fib0618 := pdh - 0.618 * r
+    tpPrice := use782AsExtension ? (pdh + 0.782 * r) : (pdh - 0.782 * r)
+    setupActive := true
+
+// Invalidate setup if market structure breaks
+if setupActive and (not uptrend)
+    setupActive := false
+
+// ---------------------------
+// Bullish confirmation near 0.386
+// ---------------------------
+touched0386 = setupActive and not na(fib0386) and low <= fib0386 and high >= fib0386
+bullishEngulfing = close > open and close[1] < open[1] and open <= close[1] and close >= open[1]
+pinBarBull = (close > open) and ((math.min(open, close) - low) > (high - low) * 0.5)
+bullishConfirmation = requireBullishEngulfing ? bullishEngulfing : (bullishEngulfing or pinBarBull)
+entrySignal = touched0386 and bullishConfirmation and strategy.position_size == 0
+
+// ---------------------------
+// Risk-based position sizing (1% default)
+// ---------------------------
+stopBuffer = stopBufferTicks * syminfo.mintick
+stopPrice = fib0618 - stopBuffer
+perUnitRisk = math.abs(fib0386 - stopPrice)
+
+riskAmount = strategy.equity * riskPct
+qtyRaw = perUnitRisk > 0 ? (riskAmount / (perUnitRisk * syminfo.pointvalue)) : na
+qty = na(qtyRaw) ? na : math.floor(qtyRaw)
+
+canTrade = entrySignal and not na(qty) and qty >= 1 and tpPrice > fib0386
+
+if canTrade
+    strategy.entry("LongFib", strategy.long, qty=qty, limit=fib0386)
+    strategy.exit("LongFib-Exit", from_entry="LongFib", stop=stopPrice, limit=tpPrice)
+    setupActive := false
+
+// ---------------------------
+// Visuals
+// ---------------------------
+plot(setupActive ? fib0386 : na, "Fib 0.386", color=color.new(color.blue, 0), style=plot.style_linebr)
+plot(setupActive ? fib0618 : na, "Fib 0.618", color=color.new(color.orange, 0), style=plot.style_linebr)
+plot(setupActive ? tpPrice : na, "TP (0.782)", color=color.new(color.purple, 0), style=plot.style_linebr)
+
+plotshape(breakout, title="Breakout > PDH", style=shape.triangleup, color=color.green, location=location.belowbar, size=size.tiny, text="BO")
+plotshape(entrySignal, title="Entry Signal", style=shape.circle, color=color.blue, location=location.belowbar, size=size.tiny, text="BUY")
