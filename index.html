@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>$5,000 Prop Firm Trading Control System</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="container">
+    <header>
+      <h1>Strict Rule-Based Trading Control System</h1>
+      <p>Built for a $5,000 two-step prop firm evaluation. Discipline first, emotions removed.</p>
+    </header>
+
+    <section class="card" id="setupCard">
+      <h2>1) System Setup (One Time)</h2>
+      <div class="grid two">
+        <label>
+          Initial Balance
+          <input id="initialBalance" type="number" value="5000" readonly />
+        </label>
+        <label>
+          Fixed Risk / Trade
+          <input id="fixedRisk" type="text" value="$25 (0.5%)" readonly />
+        </label>
+        <label>
+          Minimum RR
+          <input id="minRR" type="text" value="1:2 (locked)" readonly />
+        </label>
+        <label>
+          Leverage
+          <input id="leverage" type="text" value="1:100" readonly />
+        </label>
+      </div>
+
+      <div class="grid two">
+        <label>
+          Stage Selector
+          <select id="stageSelector">
+            <option value="1">Stage 1 (Target $400, Min Days 5)</option>
+            <option value="2">Stage 2 (Target $250, Min Days 5)</option>
+          </select>
+        </label>
+        <div class="inline-actions">
+          <button id="startEvaluationBtn">Start Evaluation (Locks Settings)</button>
+        </div>
+      </div>
+      <p class="note" id="setupStatus">Evaluation not started.</p>
+    </section>
+
+    <section class="card" id="tradeEntryCard">
+      <h2>2) Trade Entry (Robot Mode)</h2>
+      <div class="grid two">
+        <label>
+          Trade Number
+          <input id="tradeNumber" type="text" readonly placeholder="Auto-generated" />
+        </label>
+        <label>
+          Screenshot Upload (Required)
+          <input id="screenshot" type="file" accept="image/*" />
+        </label>
+        <label>
+          Entry Price
+          <input id="entryPrice" type="number" step="any" min="0" />
+        </label>
+        <label>
+          Stop Loss Price
+          <input id="stopPrice" type="number" step="any" min="0" />
+        </label>
+        <label>
+          Target Price
+          <input id="targetPrice" type="number" step="any" min="0" />
+        </label>
+      </div>
+
+      <div class="calc-box">
+        <p><strong>Calculated Risk:</strong> <span id="riskAmount">$25.00</span></p>
+        <p><strong>Calculated RR:</strong> <span id="rrValue">-</span></p>
+        <p><strong>Validation:</strong> <span id="validationMessage">Waiting for input.</span></p>
+      </div>
+
+      <button id="confirmTradeBtn" disabled>Confirm Trade</button>
+    </section>
+
+    <section class="card" id="tradeResultCard">
+      <h2>3) Trade Result (Simplified)</h2>
+      <p id="activeTradeStatus">No active trade.</p>
+      <div class="inline-actions">
+        <button id="winBtn" disabled>WIN (+$50)</button>
+        <button id="lossBtn" disabled>LOSS (-$25)</button>
+      </div>
+      <p class="note">No manual PnL entry. No edit/delete. System updates automatically.</p>
+    </section>
+
+    <section class="card" id="dashboardCard">
+      <h2>4) Dashboard</h2>
+      <div class="grid three" id="statsGrid"></div>
+      <div class="progress-wrap">
+        <label for="targetProgress">Progress Toward Target</label>
+        <progress id="targetProgress" value="0" max="100"></progress>
+        <p id="progressText">0%</p>
+      </div>
+      <p id="lockNotice" class="lock"></p>
+    </section>
+
+    <section class="card">
+      <h2>Trade Log</h2>
+      <div id="tradeLog"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
